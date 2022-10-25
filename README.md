@@ -1,3 +1,13 @@
+# janbar
+fork这个仓库是因为需要修改`pb.go`中`bytes`类型为`json.RawMessage`,方便序列化和反序列化。
+
+执行`protoc --proto_path=. --go_out=paths=source_relative:. janbar.proto`可以生成pb文件。
+
+执行`protoc-go-inject-tag.exe -i janbar.pb.go`可以修改源码中的`bytes`为`json.RawMessage`。
+
+注意需要按照规则填写`gotags:"json.RawMessage"`的`gotags`前缀的标签。如果有多个则最后一个生效。
+
+
 # protoc-go-inject-tag
 
 [![Build Status](https://www.travis-ci.com/favadi/protoc-go-inject-tag.svg?branch=master)](https://www.travis-ci.com/favadi/protoc-go-inject-tag)
@@ -92,7 +102,7 @@ type IP struct {
 
 ## Remove gotag comments from generated output
 
-Utilizing the `-remove-tag-comment` flag, you can remove the gotag comment that
+Utilizing the `-remove_tag_comment` flag, you can remove the gotag comment that
 is normally annotated to the generated code. This allows more seamless support with
 libraries like swag/openapi generators that use code comments to generate openapi
 files.

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 )
@@ -48,6 +49,19 @@ func (ti tagItems) override(nti tagItems) tagItems {
 	return append(overrided, nti...)
 }
 
+func (ti tagItems) filterTypeTag() (tagItems, string) {
+	tag, tagType := make(tagItems, 0, len(ti)), ""
+	for _, v := range ti {
+		if v.key == "gotags" {
+			// 保留最后一个作为修改类型用
+			tagType = v.value
+		} else {
+			tag = append(tag, v)
+		}
+	}
+	return tag, strings.Trim(tagType, "\"")
+}
+
 func newTagItems(tag string) tagItems {
 	items := []tagItem{}
 	splitted := rTags.FindAllString(tag, -1)
@@ -67,8 +81,19 @@ func injectTag(contents []byte, area textArea, removeTagComment bool) (injected 
 	copy(expr, contents[area.Start-1:area.End-1])
 	cti := newTagItems(area.CurrentTag)
 	iti := newTagItems(area.InjectTag)
-	ti := cti.override(iti)
+	ti, newType := cti.override(iti).filterTypeTag()
 	expr = rInject.ReplaceAll(expr, []byte(fmt.Sprintf("`%s`", ti.format())))
+
+	if newType != "" {
+		i0, i1 := bytes.IndexByte(expr, ' '), bytes.IndexByte(expr, '`')
+		if i0 > 0 && i1 > i0 {
+			data := make([]byte, 0, len(expr)+len(newType))
+			data = append(data, expr[:i0+1]...) // 带上一个后置空格
+			data = append(data, newType...)     // 替换中间类型部分
+			data = append(data, expr[i1-1:]...) // 带上一个前置空格
+			expr = data
+		}
+	}
 
 	if removeTagComment {
 		strippedComment := make([]byte, area.CommentEnd-area.CommentStart)

@@ -9,6 +9,8 @@ import (
 	"os"
 	"regexp"
 	"strings"
+
+	"golang.org/x/tools/imports"
 )
 
 var (
@@ -151,7 +153,19 @@ func writeFile(inputPath string, areas []textArea, removeTagComment bool) (err e
 		logf("inject custom tag %q to expression %q", area.InjectTag, string(contents[area.Start-1:area.End-1]))
 		contents = injectTag(contents, area, removeTagComment)
 	}
-	if err = os.WriteFile(inputPath, contents, 0o644); err != nil {
+
+	imports.Debug = verbose // 格式化一次代码,缺少的import也会自动生成
+	contents, err = imports.Process(inputPath, contents, &imports.Options{
+		TabWidth:  8,
+		TabIndent: true,
+		Comments:  true,
+		Fragment:  true,
+	})
+	if err != nil {
+		return err
+	}
+
+	if err = os.WriteFile(inputPath, contents, 0o666); err != nil {
 		return
 	}
 
